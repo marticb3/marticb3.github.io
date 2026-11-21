@@ -212,7 +212,7 @@ section.view.on { display: block; }
           </div>
           <div class="controls">
             <button class="btn primary" id="btn-next" type="button">Treu una cançó</button>
-            <button class="btn" id="btn-undo" type="button">Desfés l'última</button>
+            <button class="btn" id="btn-undo" type="button">‹ Torna a l'anterior</button>
             <button class="btn" id="btn-reset" type="button">Nova partida</button>
           </div>
           <div class="listen" id="listen"></div>
@@ -383,7 +383,14 @@ $("btn-next").addEventListener("click", () => {
   stopSong(); renderNow();
   if (autoPlay && urls[pick]) playSong(pick);
 });
-$("btn-undo").addEventListener("click", () => { stopSong(); drawn.pop(); save("bm-drawn", drawn); renderNow(); });
+$("btn-undo").addEventListener("click", () => {
+  if (!drawn.length) return;
+  stopSong();
+  drawn.pop(); save("bm-drawn", drawn);
+  renderNow();
+  const prev = drawn.length ? drawn[drawn.length - 1] : null;   // torna a sonar la cançó anterior
+  if (prev != null && urls[prev]) playSong(prev);
+});
 $("btn-reset").addEventListener("click", () => { if (drawn.length) $("modal").classList.add("on"); });
 $("modal-no").addEventListener("click", () => $("modal").classList.remove("on"));
 $("modal-yes").addEventListener("click", () => {
