@@ -1,0 +1,605 @@
+<!DOCTYPE html>
+<html lang="ca">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Bingo musical amb Spotify</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Bungee&family=DM+Sans:opsz,wght@9..40,400;9..40,600;9..40,800&display=swap" rel="stylesheet">
+<style>
+:root {
+  /* Una pista de ball de nit: fons fosc, groc de llum de neó com a accent, un color per dècada */
+  --bg: #13111d;
+  --surface: #1e1b2c;
+  --surface-2: #2a2640;
+  --text: #f4f0e8;
+  --muted: #a39fb8;
+  --accent: #ffc93c;
+  --hot: #ff4f7b;
+  --good: #3ddc84;
+  --line: #3a3552;
+  --display: "Bungee", "Impact", "Arial Black", sans-serif;
+  --body: "DM Sans", "Segoe UI", system-ui, sans-serif;
+  --d1960: #ff4f7b; --d1970: #ff9a3c; --d1980: #33c9d6; --d1990: #9b7bff;
+  --d2000: #3ddc84; --d2010: #ff6fb0; --d2020: #ffc93c;
+  color-scheme: dark;
+}
+* { box-sizing: border-box; }
+html, body { margin: 0; }
+body { background: var(--bg); color: var(--text); font-family: var(--body); font-size: 16px; line-height: 1.45; }
+button, input { font: inherit; color: inherit; }
+:focus-visible { outline: 3px solid var(--accent); outline-offset: 2px; }
+.wrap { max-width: 1120px; margin: 0 auto; padding: 20px 20px 48px; }
+
+header.top { display: flex; flex-wrap: wrap; align-items: end; justify-content: space-between; gap: 12px 24px; padding-bottom: 16px; border-bottom: 1px solid var(--line); }
+.brand h1 { font-family: var(--display); font-weight: 400; font-size: clamp(28px, 5vw, 44px); line-height: 1; margin: 0; color: var(--accent); letter-spacing: .5px; }
+.brand p { margin: 6px 0 0; color: var(--muted); font-size: 14px; }
+.decades { display: flex; gap: 4px; margin-top: 10px; }
+.decades span { font-size: 11px; font-weight: 800; padding: 2px 7px; border-radius: 999px; color: #13111d; }
+nav.tabs { display: flex; gap: 6px; flex-wrap: wrap; }
+nav.tabs a { text-decoration: none; color: var(--muted); font-weight: 600; padding: 8px 14px; border-radius: 999px; border: 1px solid var(--line); }
+nav.tabs a[aria-current="page"] { background: var(--accent); color: #13111d; border-color: var(--accent); }
+
+section.view { display: none; padding-top: 20px; }
+section.view.on { display: block; }
+
+.btn { cursor: pointer; border: 1px solid var(--line); background: var(--surface-2); padding: 10px 16px; border-radius: 10px; font-weight: 600; }
+.btn:hover { border-color: var(--muted); }
+.btn.primary { background: var(--accent); color: #13111d; border-color: var(--accent); font-weight: 800; font-size: 18px; padding: 14px 22px; }
+.btn.primary:hover { filter: brightness(1.06); }
+.btn:disabled { opacity: .45; cursor: not-allowed; }
+
+/* Presentador */
+.stage { display: grid; grid-template-columns: minmax(0, 1.25fr) minmax(0, 1fr); gap: 20px; align-items: start; }
+@media (max-width: 820px) { .stage { grid-template-columns: 1fr; } }
+.now { background: var(--surface); border-radius: 18px; padding: 24px; border: 1px solid var(--line); position: relative; overflow: hidden; }
+.now .label { font-size: 12px; font-weight: 800; letter-spacing: 1.5px; text-transform: uppercase; color: var(--muted); }
+.now .num { position: absolute; top: 18px; right: 22px; font-family: var(--display); font-size: 15px; color: var(--muted); font-variant-numeric: tabular-nums; }
+.vinyl { width: 92px; height: 92px; border-radius: 50%; flex: none; background: repeating-radial-gradient(circle, #0c0b12 0 2px, #1c1a26 2px 4px); display: grid; place-items: center; }
+.vinyl i { width: 34px; height: 34px; border-radius: 50%; background: var(--dc, var(--accent)); box-shadow: inset 0 0 0 13px var(--dc, var(--accent)), inset 0 0 0 16px #13111d; }
+.spin .vinyl { animation: spin 1.6s linear infinite; }
+@keyframes spin { to { transform: rotate(360deg); } }
+@media (prefers-reduced-motion: reduce) { .spin .vinyl { animation: none; } }
+.nowrow { display: flex; gap: 20px; align-items: center; margin: 14px 0 18px; }
+.now h2 { font-size: clamp(26px, 4vw, 40px); line-height: 1.08; margin: 0; text-wrap: balance; font-weight: 800; }
+.now .artist { font-size: 18px; color: var(--muted); margin-top: 6px; }
+.chip { display: inline-block; font-size: 12px; font-weight: 800; padding: 3px 9px; border-radius: 999px; color: #13111d; background: var(--dc, var(--accent)); }
+.controls { display: flex; flex-wrap: wrap; gap: 10px; align-items: center; }
+.listen { display: flex; gap: 14px; margin-top: 14px; font-size: 14px; flex-wrap: wrap; }
+.listen a { color: var(--accent); }
+.progress { height: 6px; background: var(--surface-2); border-radius: 999px; margin-top: 18px; overflow: hidden; }
+.progress b { display: block; height: 100%; background: var(--accent); width: 0; transition: width .3s; }
+
+.panel { background: var(--surface); border-radius: 18px; padding: 18px 20px; border: 1px solid var(--line); }
+.panel h3 { margin: 0 0 4px; font-size: 18px; }
+.panel .hint { margin: 0 0 12px; color: var(--muted); font-size: 14px; }
+.check { display: flex; gap: 8px; }
+.check input { width: 110px; background: var(--bg); border: 1px solid var(--line); border-radius: 10px; padding: 10px 12px; font-variant-numeric: tabular-nums; }
+.verdict { margin: 14px 0 10px; font-weight: 800; font-size: 18px; min-height: 1.4em; }
+.verdict.win { color: var(--good); }
+.verdict.no { color: var(--hot); }
+
+.mini { display: grid; grid-template-columns: repeat(4, 1fr); gap: 4px; }
+.mini div { font-size: 12px; line-height: 1.2; padding: 7px 6px; border-radius: 6px; background: var(--surface-2); color: var(--muted); min-height: 46px; border-top: 3px solid var(--dc); overflow-wrap: anywhere; }
+.mini div.hit { background: color-mix(in srgb, var(--good) 22%, var(--surface-2)); color: var(--text); font-weight: 600; }
+.mini div.rowwin { outline: 2px solid var(--good); }
+
+.history { margin-top: 20px; }
+.history ol { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 6px; max-height: 260px; overflow: auto; }
+.history li { display: grid; grid-template-columns: 34px 1fr auto; gap: 10px; align-items: center; font-size: 14px; padding: 6px 10px; background: var(--surface-2); border-radius: 8px; border-left: 4px solid var(--dc); }
+.history li .n { color: var(--muted); font-variant-numeric: tabular-nums; }
+.history li .y { color: var(--muted); font-variant-numeric: tabular-nums; }
+.history .empty { color: var(--muted); font-size: 14px; }
+
+.board { margin-top: 24px; }
+.board h3 { font-size: 18px; margin: 0 0 10px; }
+.board .dec { margin-bottom: 14px; }
+.board .dec h4 { margin: 0 0 6px; font-size: 13px; letter-spacing: 1px; text-transform: uppercase; color: var(--dc); display: flex; justify-content: space-between; }
+.board .dec h4 span { color: var(--muted); font-variant-numeric: tabular-nums; }
+.board .tiles { display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 5px; }
+.board .tiles div { font-size: 12.5px; line-height: 1.25; padding: 7px 9px; border-radius: 7px; background: var(--surface); color: var(--muted); border: 1px solid var(--line); }
+.board .tiles div.on { background: var(--dc); color: #13111d; border-color: var(--dc); font-weight: 700; }
+
+/* Cartrons */
+.cardbar { display: flex; flex-wrap: wrap; gap: 10px; align-items: center; margin-bottom: 16px; }
+.cardbar input { width: 90px; background: var(--surface); border: 1px solid var(--line); border-radius: 10px; padding: 10px 12px; }
+.card { max-width: 720px; background: #fbf8f2; color: #1b1830; border-radius: 16px; overflow: hidden; }
+.card .head { background: #1b1830; color: var(--accent); display: flex; justify-content: space-between; align-items: center; padding: 14px 18px; }
+.card .head b { font-family: var(--display); font-weight: 400; font-size: 22px; }
+.card .head span { font-weight: 800; font-size: 18px; }
+.card .grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 0; padding: 10px; }
+.card .cell { cursor: pointer; border: 1px solid #d6d2e2; background: transparent; color: inherit; padding: 16px 8px 14px; text-align: center; min-height: 96px; display: flex; flex-direction: column; justify-content: center; gap: 4px; border-top: 4px solid var(--dc); position: relative; }
+.card .cell b { font-size: 15px; line-height: 1.15; overflow-wrap: anywhere; }
+.card .cell small { font-size: 12px; color: #6b6880; }
+.card .cell.mark::after { content: ""; position: absolute; inset: 10px; border-radius: 50%; border: 5px solid color-mix(in srgb, var(--hot) 75%, transparent); pointer-events: none; }
+.card .foot { padding: 0 18px 14px; font-size: 12px; color: #6b6880; }
+@media (max-width: 520px) { .card .cell { min-height: 80px; padding: 10px 4px; } .card .cell b { font-size: 12.5px; } .card .cell small { font-size: 10.5px; } }
+
+/* Cançons */
+.songs { display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: 20px; }
+.songs .dec h4 { margin: 0 0 8px; font-family: var(--display); font-weight: 400; font-size: 20px; color: var(--dc); }
+.songs ul { list-style: none; padding: 0; margin: 0; }
+.songs li { display: grid; grid-template-columns: 40px 1fr; gap: 8px; padding: 5px 0; border-bottom: 1px solid var(--line); font-size: 14px; }
+.songs li .y { color: var(--muted); font-variant-numeric: tabular-nums; }
+.songs li span { color: var(--muted); }
+
+/* Spotify */
+.spot { background: var(--surface-2); border-radius: 14px; padding: 12px; margin-bottom: 16px; display: grid; gap: 10px; }
+.spot-embed { border-radius: 12px; overflow: hidden; min-height: 80px; background: var(--bg); }
+.spot-embed iframe { display: block; border: 0; width: 100%; }
+.spot-row { display: flex; flex-wrap: wrap; justify-content: space-between; gap: 10px; align-items: center; }
+.pstatus { font-size: 14px; color: var(--muted); }
+.pstatus a { color: var(--accent); }
+.pstatus b { color: var(--text); font-variant-numeric: tabular-nums; }
+.pctl { display: flex; gap: 6px; flex-wrap: wrap; }
+.btn.sm { padding: 6px 10px; font-size: 13px; border-radius: 8px; }
+.musichead { display: flex; flex-wrap: wrap; justify-content: space-between; gap: 16px 32px; align-items: start; }
+.vh { margin: 0 0 6px; font-size: 24px; }
+.lead { margin: 0; color: var(--muted); max-width: 70ch; font-size: 15px; }
+.lead b { color: var(--text); }
+.mstat { background: var(--surface); border: 1px solid var(--line); border-radius: 14px; padding: 12px 18px; display: flex; gap: 10px; align-items: baseline; }
+.mstat b { font-family: var(--display); font-weight: 400; font-size: 34px; color: var(--accent); font-variant-numeric: tabular-nums; }
+.mstat span { color: var(--muted); font-size: 14px; }
+.paste { margin-top: 18px; display: grid; gap: 6px; }
+.paste textarea { width: 100%; background: var(--surface); border: 1px solid var(--line); border-radius: 10px; padding: 10px 12px; color: var(--text); font: 13px/1.4 ui-monospace, Menlo, Consolas, monospace; resize: vertical; }
+.mbar { display: flex; flex-wrap: wrap; gap: 10px; align-items: center; margin: 8px 0 6px; }
+.mbar select { background: var(--surface); border: 1px solid var(--line); border-radius: 10px; padding: 9px 10px; color: var(--text); font: inherit; }
+.btn.primary.filebtn { font-size: 16px; padding: 10px 16px; }
+.chk { display: flex; gap: 6px; align-items: center; color: var(--muted); }
+.hint { color: var(--muted); font-size: 14px; }
+.mlist { display: grid; grid-template-columns: repeat(auto-fill, minmax(330px, 1fr)); gap: 6px; }
+.mrow { display: grid; grid-template-columns: 1fr; gap: 6px; background: var(--surface); border: 1px solid var(--line); border-left: 4px solid var(--dc); border-radius: 10px; padding: 8px 10px; }
+.mrow .t { font-weight: 700; font-size: 14px; line-height: 1.2; }
+.mrow .t span { font-weight: 400; color: var(--muted); }
+.mrow .f { font-size: 12px; color: var(--good); overflow-wrap: anywhere; }
+.mrow .f.miss { color: var(--hot); }
+.mrow input { width: 100%; background: var(--bg); border: 1px solid var(--line); border-radius: 8px; padding: 6px 8px; font-size: 12px; }
+
+.rules { margin-top: 28px; color: var(--muted); font-size: 14px; max-width: 70ch; }
+.rules b { color: var(--text); }
+
+.modal { position: fixed; inset: 0; background: rgb(0 0 0 / .6); display: none; place-items: center; padding: 20px; }
+.modal.on { display: grid; }
+.modal > div { background: var(--surface); border: 1px solid var(--line); border-radius: 16px; padding: 22px; max-width: 380px; }
+.modal p { margin: 0 0 16px; }
+.modal .controls { justify-content: flex-end; }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header class="top">
+    <div class="brand">
+      <h1>Bingo musical</h1>
+      <p><span id="count-songs"></span> cançons dels anys 60 fins a avui · 100 cartrons</p>
+      <div class="decades" id="decade-legend"></div>
+    </div>
+    <nav class="tabs" aria-label="Seccions">
+      <a href="#presentador" data-view="presentador">Presentador</a>
+      <a href="#cartrons" data-view="cartrons">Cartrons</a>
+      <a href="#musica" data-view="musica">Spotify</a>
+      <a href="#cancons" data-view="cancons">Totes les cançons</a>
+    </nav>
+  </header>
+
+  <section class="view" id="view-presentador">
+    <div class="stage">
+      <div>
+        <div class="now" id="now">
+          <div class="label">Sona ara</div>
+          <div class="num" id="now-num"></div>
+          <div class="nowrow">
+            <div class="vinyl"><i></i></div>
+            <div>
+              <h2 id="now-title">Prem «Treu una cançó» per començar</h2>
+              <div class="artist" id="now-artist">Cada cançó surt una sola vegada, en ordre aleatori.</div>
+              <div style="margin-top:10px" id="now-chip"></div>
+            </div>
+          </div>
+          <div class="spot" id="player">
+            <div class="spot-embed"><div id="spot-embed"></div></div>
+            <div class="spot-row">
+              <div class="pstatus" id="p-status">Carregant el reproductor de Spotify…</div>
+              <div class="pctl">
+                <button class="btn sm" id="p-play" type="button">Posa-la</button>
+                <button class="btn sm" id="p-back" type="button" title="Comença 5 segons abans">−5 s</button>
+                <button class="btn sm" id="p-fwd" type="button" title="Comença 5 segons després">+5 s</button>
+                <button class="btn sm" id="p-save" type="button" title="La propera vegada començarà al punt on sona ara">Comença aquí</button>
+              </div>
+            </div>
+          </div>
+          <div class="controls">
+            <button class="btn primary" id="btn-next" type="button">Treu una cançó</button>
+            <button class="btn" id="btn-undo" type="button">Desfés l'última</button>
+            <button class="btn" id="btn-reset" type="button">Nova partida</button>
+          </div>
+          <div class="listen" id="listen"></div>
+          <div class="progress" aria-hidden="true"><b id="progress"></b></div>
+        </div>
+
+        <div class="board" id="board"></div>
+      </div>
+
+      <aside>
+        <div class="panel">
+          <h3>Comprova un cartró</h3>
+          <p class="hint">Quan algú canti línia o bingo, escriu el número del seu cartró.</p>
+          <form class="check" id="check-form">
+            <label for="check-n" class="sr" style="position:absolute;left:-9999px">Número de cartró</label>
+            <input id="check-n" type="number" min="1" max="100" placeholder="Nº 1–100" inputmode="numeric">
+            <button class="btn" type="submit">Comprova</button>
+          </form>
+          <div class="verdict" id="verdict" aria-live="polite"></div>
+          <div class="mini" id="mini"></div>
+        </div>
+        <div class="panel history">
+          <h3>Ja han sonat</h3>
+          <p class="hint" id="hist-count"></p>
+          <ol id="history"></ol>
+        </div>
+      </aside>
+    </div>
+    <div class="rules">
+      <p><b>Com es juga.</b> Reparteix un cartró a cada jugador (el PDF en porta 100, dos per full). El presentador treu cançons amb el botó i les posa amb els enllaços d'escolta. Els jugadors ratllen el títol quan el reconeixen. Primer premi: <b>línia</b> (una fila horitzontal completa). Premi gran: <b>bingo</b> (les 16 cançons del cartró).</p>
+    </div>
+  </section>
+
+  <section class="view" id="view-cartrons">
+    <div class="cardbar">
+      <button class="btn" id="card-prev" type="button" aria-label="Cartró anterior">‹ Anterior</button>
+      <label for="card-n">Cartró nº</label>
+      <input id="card-n" type="number" min="1" max="100" value="1">
+      <button class="btn" id="card-next" type="button" aria-label="Cartró següent">Següent ›</button>
+      <button class="btn" id="card-clear" type="button">Esborra les marques</button>
+    </div>
+    <div class="card" id="card"></div>
+    <p class="rules">Per jugar des del mòbil: obre el teu cartró i toca cada cançó quan soni. Les marques es guarden en aquest navegador.</p>
+  </section>
+
+  <section class="view" id="view-musica">
+    <div class="musichead">
+      <div>
+        <h2 class="vh">Vincula la llista de Spotify</h2>
+        <p class="lead">Només cal fer-ho una vegada. A l'aplicació de Spotify a l'ordinador, obre la llista del bingo, fes clic a la primera cançó, prem <b>Ctrl+A</b> (o <b>Cmd+A</b> al Mac) i després <b>Ctrl+C</b> (o <b>Cmd+C</b>). Enganxa el que has copiat aquí sota i prem «Vincula». La pàgina reconeix cada cançó pel títol i ho recorda en aquest navegador.</p>
+      </div>
+      <div class="mstat"><b id="m-count">0</b><span>de <span id="m-total"></span> cançons vinculades</span></div>
+    </div>
+    <div class="paste">
+      <label for="m-paste" class="hint">Enllaços de les cançons de la llista</label>
+      <textarea id="m-paste" rows="5" placeholder="https://open.spotify.com/track/…&#10;https://open.spotify.com/track/…"></textarea>
+      <div class="mbar">
+        <button class="btn primary filebtn" id="m-link" type="button">Vincula</button>
+        <label for="m-from">Comença a sonar a</label>
+        <select id="m-from">
+          <option value="0">l'inici</option>
+          <option value="30">0:30</option>
+          <option value="45">0:45</option>
+          <option value="60">1:00</option>
+        </select>
+        <label for="m-len">i atura-la després de</label>
+        <select id="m-len">
+          <option value="0">no l'aturis</option>
+          <option value="20">20 s</option>
+          <option value="30">30 s</option>
+          <option value="45">45 s</option>
+          <option value="60">60 s</option>
+        </select>
+        <label class="chk"><input type="checkbox" id="m-auto"> Sona sola en treure-la</label>
+      </div>
+    </div>
+    <p class="hint" id="m-note"></p>
+    <div class="mlist" id="m-list"></div>
+  </section>
+
+  <section class="view" id="view-cancons">
+    <div class="songs" id="songs"></div>
+  </section>
+</div>
+
+<div class="modal" id="modal" role="dialog" aria-modal="true" aria-labelledby="modal-text">
+  <div>
+    <p id="modal-text">Vols començar una partida nova? Es perdrà la llista de cançons que ja han sonat.</p>
+    <div class="controls">
+      <button class="btn" id="modal-no" type="button">Cancel·la</button>
+      <button class="btn primary" id="modal-yes" type="button" style="font-size:16px;padding:10px 16px">Sí, nova partida</button>
+    </div>
+  </div>
+</div>
+
+<script>
+const DATA = {"songs": [{"id": 0, "t": "Can't Help Falling in Love", "a": "Elvis Presley", "y": 1961, "d": 1960}, {"id": 1, "t": "Stand by Me", "a": "Ben E. King", "y": 1961, "d": 1960}, {"id": 2, "t": "The House of the Rising Sun", "a": "The Animals", "y": 1964, "d": 1960}, {"id": 3, "t": "Chica ye-ye", "a": "Concha Velasco", "y": 1965, "d": 1960}, {"id": 4, "t": "Hey Jude", "a": "The Beatles", "y": 1968, "d": 1960}, {"id": 5, "t": "Imagine", "a": "John Lennon", "y": 1971, "d": 1970}, {"id": 6, "t": "Un beso y una flor", "a": "Nino Bravo", "y": 1972, "d": 1970}, {"id": 7, "t": "Bohemian Rhapsody", "a": "Queen", "y": 1975, "d": 1970}, {"id": 8, "t": "Dancing Queen", "a": "ABBA", "y": 1976, "d": 1970}, {"id": 9, "t": "Stayin' Alive", "a": "Bee Gees", "y": 1977, "d": 1970}, {"id": 10, "t": "We Are the Champions", "a": "Queen", "y": 1977, "d": 1970}, {"id": 11, "t": "Y.M.C.A.", "a": "Village People", "y": 1978, "d": 1970}, {"id": 12, "t": "I Will Survive", "a": "Gloria Gaynor", "y": 1978, "d": 1970}, {"id": 13, "t": "Eye of the Tiger", "a": "Survivor", "y": 1982, "d": 1980}, {"id": 14, "t": "Billie Jean", "a": "Michael Jackson", "y": 1983, "d": 1980}, {"id": 15, "t": "Girls Just Want to Have Fun", "a": "Cyndi Lauper", "y": 1983, "d": 1980}, {"id": 16, "t": "Take On Me", "a": "a-ha", "y": 1985, "d": 1980}, {"id": 17, "t": "Livin' on a Prayer", "a": "Bon Jovi", "y": 1986, "d": 1980}, {"id": 18, "t": "Sweet Child o' Mine", "a": "Guns N' Roses", "y": 1987, "d": 1980}, {"id": 19, "t": "I Wanna Dance with Somebody", "a": "Whitney Houston", "y": 1987, "d": 1980}, {"id": 20, "t": "Like a Prayer", "a": "Madonna", "y": 1989, "d": 1980}, {"id": 21, "t": "L'Empordà", "a": "Sopa de Cabra", "y": 1989, "d": 1980}, {"id": 22, "t": "Boig per tu", "a": "Sau", "y": 1990, "d": 1990}, {"id": 23, "t": "Smells Like Teen Spirit", "a": "Nirvana", "y": 1991, "d": 1990}, {"id": 24, "t": "Macarena", "a": "Los del Río", "y": 1993, "d": 1990}, {"id": 25, "t": "Wonderwall", "a": "Oasis", "y": 1995, "d": 1990}, {"id": 26, "t": "La flaca", "a": "Jarabe de Palo", "y": 1996, "d": 1990}, {"id": 27, "t": "Wannabe", "a": "Spice Girls", "y": 1996, "d": 1990}, {"id": 28, "t": "Bon dia", "a": "Els Pets", "y": 1997, "d": 1990}, {"id": 29, "t": "My Heart Will Go On", "a": "Céline Dion", "y": 1997, "d": 1990}, {"id": 30, "t": "...Baby One More Time", "a": "Britney Spears", "y": 1998, "d": 1990}, {"id": 31, "t": "Livin' la Vida Loca", "a": "Ricky Martin", "y": 1999, "d": 1990}, {"id": 32, "t": "Llença't", "a": "Lax'n'Busto", "y": 2000, "d": 2000}, {"id": 33, "t": "Aserejé", "a": "Las Ketchup", "y": 2002, "d": 2000}, {"id": 34, "t": "Ave María", "a": "David Bisbal", "y": 2002, "d": 2000}, {"id": 35, "t": "Crazy in Love", "a": "Beyoncé ft. JAY-Z", "y": 2003, "d": 2000}, {"id": 36, "t": "Soldadito marinero", "a": "Fito y Fitipaldis", "y": 2003, "d": 2000}, {"id": 37, "t": "Hips Don't Lie", "a": "Shakira ft. Wyclef Jean", "y": 2006, "d": 2000}, {"id": 38, "t": "Por la boca vive el pez", "a": "Fito y Fitipaldis", "y": 2006, "d": 2000}, {"id": 39, "t": "I Gotta Feeling", "a": "Black Eyed Peas", "y": 2009, "d": 2000}, {"id": 40, "t": "Rolling in the Deep", "a": "Adele", "y": 2010, "d": 2010}, {"id": 41, "t": "Waka Waka (This Time for Africa)", "a": "Shakira", "y": 2010, "d": 2010}, {"id": 42, "t": "Gangnam Style", "a": "PSY", "y": 2012, "d": 2010}, {"id": 43, "t": "Despacito", "a": "Luis Fonsi ft. Daddy Yankee", "y": 2017, "d": 2010}, {"id": 44, "t": "Una lluna a l'aigua", "a": "Txarango", "y": 2017, "d": 2010}, {"id": 45, "t": "Volcans", "a": "Buhos", "y": 2018, "d": 2010}, {"id": 46, "t": "Mediterrània", "a": "La Fúmiga", "y": 2019, "d": 2010}, {"id": 47, "t": "Blinding Lights", "a": "The Weeknd", "y": 2019, "d": 2010}, {"id": 48, "t": "Elefants", "a": "Oques Grasses", "y": 2021, "d": 2020}, {"id": 49, "t": "Coti x Coti", "a": "The Tyets", "y": 2023, "d": 2020}], "cards": [[3, 6, 26, 42, 13, 43, 14, 39, 32, 11, 49, 4, 30, 36, 44, 29], [0, 47, 1, 18, 10, 5, 48, 24, 2, 19, 9, 15, 16, 12, 34, 22], [35, 38, 37, 21, 41, 25, 40, 20, 45, 28, 17, 23, 33, 31, 46, 8], [16, 21, 42, 23, 4, 34, 41, 27, 43, 29, 49, 14, 7, 10, 17, 39], [48, 27, 33, 38, 28, 2, 22, 19, 47, 8, 25, 11, 32, 36, 12, 30], [6, 1, 5, 0, 18, 26, 46, 3, 24, 40, 9, 44, 35, 15, 20, 45], [13, 6, 34, 40, 8, 9, 3, 36, 49, 7, 37, 11, 28, 18, 31, 1], [14, 44, 39, 42, 13, 20, 48, 38, 27, 26, 35, 45, 33, 25, 43, 4], [16, 15, 23, 30, 47, 37, 19, 2, 17, 46, 12, 29, 0, 41, 22, 31], [12, 7, 0, 39, 10, 45, 24, 5, 22, 21, 26, 32, 23, 37, 1, 3], [30, 44, 34, 15, 10, 40, 43, 20, 13, 6, 14, 47, 7, 41, 42, 21], [24, 5, 35, 17, 32, 18, 46, 19, 29, 8, 9, 4, 27, 33, 11, 48], [2, 3, 9, 38, 35, 34, 36, 25, 40, 28, 16, 0, 31, 1, 18, 49], [30, 43, 38, 33, 27, 44, 22, 19, 47, 14, 46, 49, 32, 24, 10, 13], [21, 23, 7, 41, 31, 37, 11, 28, 29, 48, 2, 36, 15, 6, 26, 17], [25, 31, 4, 23, 26, 2, 16, 42, 8, 20, 46, 37, 12, 39, 5, 45], [17, 9, 33, 20, 44, 6, 4, 3, 8, 18, 7, 13, 34, 19, 16, 22], [41, 12, 49, 40, 14, 27, 39, 24, 38, 10, 48, 29, 36, 15, 30, 5], [49, 47, 26, 25, 43, 0, 11, 28, 35, 41, 21, 32, 22, 45, 1, 42], [11, 18, 6, 14, 31, 37, 46, 17, 3, 16, 44, 32, 4, 43, 27, 15], [1, 25, 48, 30, 21, 45, 7, 12, 35, 42, 24, 38, 9, 29, 40, 2], [28, 0, 19, 34, 6, 8, 39, 13, 7, 10, 47, 20, 23, 33, 5, 36], [12, 45, 28, 15, 29, 20, 33, 13, 39, 19, 3, 26, 49, 35, 16, 41], [9, 32, 8, 2, 4, 27, 48, 10, 25, 36, 17, 34, 11, 1, 37, 23], [43, 30, 14, 22, 40, 31, 38, 21, 44, 5, 18, 24, 42, 0, 46, 47], [38, 44, 5, 15, 21, 6, 8, 4, 41, 23, 18, 34, 43, 0, 29, 17], [11, 39, 14, 24, 30, 28, 12, 1, 32, 9, 31, 26, 27, 2, 16, 35], [37, 46, 7, 13, 33, 22, 40, 49, 20, 10, 25, 36, 48, 47, 19, 45], [31, 44, 46, 42, 40, 48, 34, 30, 19, 18, 23, 3, 45, 37, 9, 26], [41, 11, 38, 4, 5, 10, 3, 6, 35, 12, 28, 15, 2, 14, 0, 13], [24, 17, 25, 1, 47, 7, 36, 49, 21, 27, 42, 20, 16, 43, 22, 29], [8, 31, 42, 46, 32, 26, 12, 25, 29, 28, 33, 9, 39, 22, 36, 15], [5, 14, 44, 40, 3, 33, 13, 20, 2, 16, 49, 17, 38, 35, 24, 21], [19, 48, 8, 30, 27, 23, 45, 7, 0, 47, 43, 37, 18, 4, 11, 41], [37, 39, 47, 9, 1, 21, 49, 34, 8, 28, 10, 6, 44, 32, 29, 13], [22, 12, 43, 25, 32, 1, 6, 27, 40, 31, 4, 45, 24, 18, 26, 7], [34, 0, 15, 14, 20, 11, 16, 46, 35, 3, 39, 2, 36, 41, 48, 17], [23, 38, 33, 41, 31, 34, 4, 30, 10, 19, 5, 46, 42, 8, 2, 45], [15, 18, 49, 27, 24, 29, 40, 48, 26, 42, 30, 25, 1, 33, 0, 19], [36, 3, 23, 11, 14, 39, 17, 21, 16, 5, 38, 43, 32, 47, 22, 37], [6, 28, 34, 0, 20, 13, 10, 35, 44, 12, 2, 7, 48, 31, 9, 32], [39, 24, 37, 11, 42, 47, 29, 28, 45, 14, 26, 21, 4, 12, 19, 46], [1, 9, 20, 16, 38, 6, 27, 10, 25, 3, 41, 7, 49, 22, 35, 18], [44, 5, 33, 17, 23, 13, 31, 30, 40, 19, 26, 8, 36, 15, 48, 43], [24, 30, 43, 35, 8, 46, 47, 38, 3, 7, 28, 23, 9, 6, 14, 22], [0, 33, 40, 37, 21, 49, 11, 16, 18, 17, 42, 29, 10, 41, 34, 1], [12, 32, 2, 45, 44, 24, 39, 25, 20, 5, 36, 15, 4, 43, 13, 27], [21, 22, 26, 23, 44, 10, 47, 37, 33, 11, 19, 45, 39, 40, 28, 13], [25, 32, 29, 34, 12, 9, 30, 38, 20, 49, 14, 36, 41, 5, 46, 48], [8, 6, 0, 4, 15, 31, 16, 35, 7, 3, 1, 42, 18, 2, 17, 27], [30, 44, 37, 20, 4, 2, 16, 12, 32, 41, 22, 42, 46, 26, 1, 33], [31, 13, 15, 36, 24, 48, 47, 3, 43, 0, 19, 39, 6, 40, 28, 25], [17, 21, 34, 38, 8, 18, 5, 35, 11, 23, 7, 49, 45, 10, 14, 29], [25, 32, 8, 9, 27, 14, 36, 5, 40, 12, 13, 1, 4, 46, 22, 39], [35, 19, 10, 6, 3, 16, 2, 49, 45, 42, 11, 18, 7, 44, 29, 24], [0, 48, 21, 41, 47, 26, 15, 43, 30, 31, 20, 33, 37, 38, 27, 9], [42, 14, 11, 37, 34, 3, 28, 23, 44, 19, 39, 27, 17, 26, 32, 6], [30, 31, 1, 15, 4, 13, 18, 28, 17, 48, 47, 43, 20, 36, 21, 2], [41, 10, 46, 5, 16, 9, 49, 22, 23, 8, 33, 38, 7, 29, 40, 24], [14, 41, 45, 48, 12, 25, 4, 35, 24, 26, 34, 40, 21, 0, 32, 44], [36, 27, 25, 31, 5, 38, 49, 35, 16, 37, 7, 22, 46, 19, 39, 29], [15, 17, 13, 33, 30, 10, 20, 23, 1, 2, 28, 8, 9, 12, 34, 11], [43, 42, 18, 29, 3, 5, 40, 20, 25, 47, 6, 33, 45, 0, 37, 17], [9, 13, 47, 48, 15, 34, 11, 1, 10, 6, 22, 41, 39, 42, 7, 3], [38, 28, 4, 44, 19, 23, 24, 31, 18, 27, 21, 8, 26, 43, 12, 49], [49, 44, 14, 17, 45, 30, 32, 16, 33, 42, 46, 0, 36, 2, 6, 35], [2, 19, 18, 4, 10, 46, 26, 9, 28, 23, 45, 22, 20, 37, 12, 21], [29, 40, 25, 1, 38, 31, 15, 43, 36, 47, 11, 14, 27, 35, 39, 34], [30, 48, 5, 32, 11, 3, 13, 4, 24, 7, 41, 0, 8, 33, 21, 16], [12, 2, 45, 6, 35, 36, 43, 44, 40, 30, 27, 46, 9, 37, 38, 5], [29, 13, 31, 10, 26, 17, 8, 15, 42, 7, 22, 14, 1, 18, 49, 47], [34, 31, 20, 28, 24, 16, 41, 39, 23, 48, 19, 25, 0, 32, 3, 2], [33, 45, 8, 28, 5, 20, 27, 19, 12, 47, 23, 13, 42, 35, 43, 30], [29, 49, 26, 17, 32, 11, 7, 48, 37, 40, 10, 6, 1, 39, 0, 21], [4, 14, 34, 24, 36, 18, 44, 3, 41, 25, 22, 16, 15, 9, 46, 38], [34, 30, 31, 1, 29, 20, 27, 47, 5, 38, 22, 33, 36, 13, 37, 14], [35, 3, 40, 12, 46, 48, 10, 49, 17, 21, 16, 8, 19, 42, 6, 24], [28, 15, 45, 41, 23, 25, 18, 39, 2, 26, 4, 43, 0, 7, 9, 44], [38, 27, 34, 24, 9, 41, 33, 18, 39, 17, 45, 32, 11, 3, 16, 19], [1, 2, 12, 13, 14, 4, 25, 26, 0, 46, 10, 49, 7, 47, 42, 23], [20, 22, 36, 35, 28, 37, 32, 40, 21, 48, 6, 8, 5, 31, 15, 44], [42, 13, 15, 29, 11, 43, 30, 36, 39, 38, 27, 34, 44, 23, 33, 19], [2, 16, 31, 8, 17, 21, 0, 48, 49, 12, 29, 40, 43, 46, 11, 24], [14, 6, 45, 41, 30, 35, 7, 20, 47, 32, 25, 22, 18, 10, 5, 9], [4, 26, 17, 1, 36, 42, 37, 3, 14, 38, 41, 10, 2, 32, 28, 0], [33, 49, 35, 31, 12, 5, 8, 24, 16, 11, 44, 47, 30, 21, 4, 13], [25, 6, 34, 18, 3, 7, 48, 1, 28, 15, 23, 29, 22, 46, 26, 27], [37, 26, 20, 39, 42, 17, 40, 9, 43, 29, 0, 35, 3, 11, 19, 45], [37, 23, 13, 4, 46, 22, 38, 1, 16, 47, 48, 2, 21, 19, 10, 31], [8, 33, 44, 14, 49, 12, 40, 28, 41, 18, 43, 34, 6, 15, 5, 45], [47, 7, 20, 24, 1, 25, 30, 9, 27, 39, 46, 17, 32, 34, 43, 36], [23, 45, 42, 36, 39, 26, 24, 10, 21, 4, 35, 41, 0, 2, 49, 19], [44, 9, 15, 16, 38, 48, 13, 6, 18, 12, 27, 20, 31, 8, 28, 40], [3, 23, 5, 41, 29, 14, 7, 37, 25, 32, 33, 20, 10, 11, 22, 30], [37, 43, 39, 6, 8, 49, 22, 29, 32, 5, 46, 18, 42, 2, 0, 26], [3, 1, 40, 33, 11, 48, 19, 17, 24, 16, 47, 4, 27, 13, 7, 15], [9, 45, 38, 44, 2, 30, 25, 21, 31, 34, 12, 35, 36, 24, 14, 28], [23, 43, 3, 15, 9, 40, 31, 17, 44, 11, 33, 37, 42, 46, 39, 19], [6, 36, 21, 48, 29, 7, 30, 14, 38, 34, 4, 28, 20, 32, 5, 49], [12, 0, 25, 8, 13, 27, 26, 35, 18, 47, 45, 10, 41, 16, 22, 1]]};
+const SONGS = DATA.songs, CARDS = DATA.cards;
+const DECADES = [...new Set(SONGS.map(s => s.d))].sort();
+const decLabel = d => d < 2000 ? "anys " + String(d % 100).padStart(2, "0") : "anys " + d;
+const dc = d => `var(--d${d})`;
+const $ = id => document.getElementById(id);
+const esc = s => String(s).replace(/[&<>"]/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
+
+function load(key, fallback) { try { const v = localStorage.getItem(key); return v ? JSON.parse(v) : fallback; } catch (e) { return fallback; } }
+function save(key, val) { try { localStorage.setItem(key, JSON.stringify(val)); } catch (e) {} }
+
+let drawn = load("bm-drawn", []);
+if (!Array.isArray(drawn)) drawn = [];
+
+$("count-songs").textContent = SONGS.length;
+$("decade-legend").innerHTML = DECADES.map(d => `<span style="background:${dc(d)}">${d < 2000 ? "'" + String(d % 100).padStart(2,"0") : d}</span>`).join("");
+
+/* ---------- Presentador ---------- */
+function renderNow() {
+  const n = drawn.length;
+  const s = n ? SONGS[drawn[n - 1]] : null;
+  const box = $("now");
+  if (s) {
+    box.style.setProperty("--dc", dc(s.d));
+    box.classList.add("spin");
+    $("now-title").textContent = s.t;
+    $("now-artist").textContent = `${s.a} · ${s.y}`;
+    $("now-chip").innerHTML = `<span class="chip">${decLabel(s.d)}</span>`;
+    $("now-num").textContent = `${n} / ${SONGS.length}`;
+    const q = encodeURIComponent(`${s.t} ${s.a}`);
+    $("listen").innerHTML = `<a href="https://www.youtube.com/results?search_query=${q}" target="_blank" rel="noopener">Escolta-la a YouTube</a><a href="https://open.spotify.com/search/${q}" target="_blank" rel="noopener">Obre-la a Spotify</a>`;
+  } else {
+    box.style.removeProperty("--dc");
+    box.classList.remove("spin");
+    $("now-title").textContent = "Prem «Treu una cançó» per començar";
+    $("now-artist").textContent = "Cada cançó surt una sola vegada, en ordre aleatori.";
+    $("now-chip").innerHTML = "";
+    $("now-num").textContent = `0 / ${SONGS.length}`;
+    $("listen").innerHTML = "";
+  }
+  $("progress").style.width = (100 * n / SONGS.length) + "%";
+  $("btn-next").disabled = n >= SONGS.length;
+  $("btn-next").textContent = n >= SONGS.length ? "Ja han sonat totes" : (n ? "Treu la següent" : "Treu una cançó");
+  $("btn-undo").disabled = !n;
+
+  // history (latest first)
+  $("hist-count").textContent = n ? `${n} cançons, la més recent a dalt.` : "Encara no ha sonat cap cançó.";
+  $("history").innerHTML = drawn.slice().reverse().map((id, i) => {
+    const s = SONGS[id];
+    return `<li style="--dc:${dc(s.d)}"><span class="n">${n - i}</span><span><b>${esc(s.t)}</b> · ${esc(s.a)}</span><span class="y">${s.y}</span></li>`;
+  }).join("");
+
+  // board
+  const set = new Set(drawn);
+  $("board").innerHTML = `<h3>Tauler de cançons</h3>` + DECADES.map(d => {
+    const g = SONGS.filter(s => s.d === d).sort((a, b) => a.y - b.y || a.t.localeCompare(b.t));
+    const on = g.filter(s => set.has(s.id)).length;
+    return `<div class="dec" style="--dc:${dc(d)}"><h4>${decLabel(d)} <span>${on}/${g.length}</span></h4><div class="tiles">${
+      g.map(s => `<div class="${set.has(s.id) ? "on" : ""}" title="${esc(s.a)} · ${s.y}">${esc(s.t)}</div>`).join("")}</div></div>`;
+  }).join("");
+
+  if (lastChecked) checkCard(lastChecked);
+  if (typeof renderPlayer === "function" && document.getElementById("player")) renderPlayer();
+}
+
+$("btn-next").addEventListener("click", () => {
+  const left = SONGS.map(s => s.id).filter(id => !drawn.includes(id));
+  if (!left.length) return;
+  const pick = left[Math.floor(Math.random() * left.length)];
+  drawn.push(pick); save("bm-drawn", drawn);
+  stopSong(); renderNow();
+  if (autoPlay && urls[pick]) playSong(pick);
+});
+$("btn-undo").addEventListener("click", () => { stopSong(); drawn.pop(); save("bm-drawn", drawn); renderNow(); });
+$("btn-reset").addEventListener("click", () => { if (drawn.length) $("modal").classList.add("on"); });
+$("modal-no").addEventListener("click", () => $("modal").classList.remove("on"));
+$("modal-yes").addEventListener("click", () => {
+  stopSong(); drawn = []; save("bm-drawn", drawn); lastChecked = 0;
+  $("verdict").textContent = ""; $("verdict").className = "verdict"; $("mini").innerHTML = "";
+  $("modal").classList.remove("on"); renderNow();
+});
+
+let lastChecked = 0;
+function checkCard(n) {
+  const ids = CARDS[n - 1];
+  const v = $("verdict");
+  if (!ids) { v.textContent = "Escriu un número de l'1 al 100."; v.className = "verdict no"; $("mini").innerHTML = ""; return; }
+  lastChecked = n;
+  const set = new Set(drawn);
+  const hits = ids.map(id => set.has(id));
+  const rows = [0, 1, 2, 3].filter(r => hits.slice(r * 4, r * 4 + 4).every(Boolean));
+  const total = hits.filter(Boolean).length;
+  if (total === 16) { v.textContent = `Cartró ${n}: BINGO!`; v.className = "verdict win"; }
+  else if (rows.length) { v.textContent = `Cartró ${n}: línia correcta (fila ${rows.map(r => r + 1).join(" i ")}). Li falten ${16 - total} per al bingo.`; v.className = "verdict win"; }
+  else { v.textContent = `Cartró ${n}: encara no. Té ${total} de 16 cançons.`; v.className = "verdict no"; }
+  $("mini").innerHTML = ids.map((id, i) => {
+    const s = SONGS[id];
+    const cls = [hits[i] ? "hit" : "", rows.includes(Math.floor(i / 4)) ? "rowwin" : ""].join(" ");
+    return `<div class="${cls}" style="--dc:${dc(s.d)}">${esc(s.t)}</div>`;
+  }).join("");
+}
+$("check-form").addEventListener("submit", e => { e.preventDefault(); checkCard(parseInt($("check-n").value, 10)); });
+
+/* ---------- Cartrons ---------- */
+let marks = load("bm-marks", {});
+if (typeof marks !== "object" || !marks) marks = {};
+let cardN = 1;
+function renderCard() {
+  cardN = Math.min(100, Math.max(1, cardN || 1));
+  $("card-n").value = cardN;
+  const m = new Set(marks[cardN] || []);
+  $("card").innerHTML = `<div class="head"><b>Bingo musical</b><span>Cartró nº ${cardN}</span></div>
+    <div class="grid">${CARDS[cardN - 1].map((id, i) => {
+      const s = SONGS[id];
+      return `<button type="button" class="cell ${m.has(i) ? "mark" : ""}" data-i="${i}" style="--dc:${dc(s.d)}" aria-pressed="${m.has(i)}"><b>${esc(s.t)}</b><small>${esc(s.a)}</small></button>`;
+    }).join("")}</div>
+    <div class="foot">Línia: una fila sencera · Bingo: les 16 cançons</div>`;
+}
+$("card").addEventListener("click", e => {
+  const c = e.target.closest(".cell"); if (!c) return;
+  const i = +c.dataset.i, arr = new Set(marks[cardN] || []);
+  arr.has(i) ? arr.delete(i) : arr.add(i);
+  marks[cardN] = [...arr]; save("bm-marks", marks); renderCard();
+});
+$("card-prev").addEventListener("click", () => { cardN--; if (cardN < 1) cardN = 100; renderCard(); });
+$("card-next").addEventListener("click", () => { cardN++; if (cardN > 100) cardN = 1; renderCard(); });
+$("card-n").addEventListener("change", () => { cardN = parseInt($("card-n").value, 10); renderCard(); });
+$("card-clear").addEventListener("click", () => { delete marks[cardN]; save("bm-marks", marks); renderCard(); });
+
+/* ---------- Cançons ---------- */
+$("songs").innerHTML = DECADES.map(d => {
+  const g = SONGS.filter(s => s.d === d).sort((a, b) => a.y - b.y || a.t.localeCompare(b.t));
+  return `<div class="dec" style="--dc:${dc(d)}"><h4>${decLabel(d)}</h4><ul>${g.map(s => `<li><span class="y">${s.y}</span><div><b>${esc(s.t)}</b><br><span>${esc(s.a)}</span></div></li>`).join("")}</ul></div>`;
+}).join("");
+
+const PLAYLIST = "3i2WpjFwnRU7krEwSTNz5P";
+/* ---------- Spotify ---------- */
+let spot = load("bm-spot", {});            // id cançó -> id de pista de Spotify
+if (typeof spot !== "object" || !spot) spot = {};
+let starts = load("bm-start", {});         // id cançó -> segon d'inici ajustat
+if (typeof starts !== "object" || !starts) starts = {};
+let fromSec = +load("bm-from", 0) || 0;
+let clipLen = +load("bm-len", 0) || 0;
+let autoPlay = !!load("bm-auto", true);
+$("m-from").value = String(fromSec);
+$("m-len").value = String(clipLen);
+$("m-auto").checked = autoPlay;
+$("m-total").textContent = SONGS.length;
+$("m-from").addEventListener("change", e => { fromSec = +e.target.value; save("bm-from", fromSec); renderPlayer(); });
+$("m-len").addEventListener("change", e => { clipLen = +e.target.value; save("bm-len", clipLen); });
+$("m-auto").addEventListener("change", e => { autoPlay = e.target.checked; save("bm-auto", autoPlay); });
+
+const STOP = new Set("the a an of in on i t s to with la el los las de me no feat ft remastered remaster version love theme from originally performed by".split(" "));
+const norm = s => s.normalize("NFD").replace(/[̀-ͯ]/g, "").toLowerCase().replace(/[^a-z0-9]+/g, " ").trim();
+const toks = s => norm(s).split(" ").filter(w => w && !STOP.has(w));
+const compact = s => norm(s).replace(/ /g, "");
+function titleScore(song, title) {
+  const base = title.replace(/\(feat[^)]*\)|\[feat[^\]]*\]/gi, "").split(" - ")[0];
+  if (compact(base) === compact(song.t)) return 2;
+  const f = new Set(toks(title)), tt = toks(song.t);
+  if (!tt.length) return 0;
+  const tf = tt.filter(w => f.has(w)).length / tt.length;
+  if (compact(title).includes(compact(song.t)) && compact(song.t).length > 4) return Math.max(tf, 1.5);
+  return tf;
+}
+const TRACK_RE = /(?:open\.spotify\.com\/(?:intl-[a-z]{2}(?:-[a-z]{2})?\/)?track\/|spotify:track:)([A-Za-z0-9]{22})/g;
+const trackId = s => { TRACK_RE.lastIndex = 0; const m = TRACK_RE.exec(s || ""); return m ? m[1] : null; };
+
+async function trackTitle(id) {
+  const r = await fetch("https://open.spotify.com/oembed?url=" + encodeURIComponent("https://open.spotify.com/track/" + id));
+  if (!r.ok) throw new Error("oembed " + r.status);
+  return (await r.json()).title || "";
+}
+
+$("m-link").addEventListener("click", async () => {
+  const text = $("m-paste").value;
+  const ids = [...new Set([...text.matchAll(TRACK_RE)].map(m => m[1]))];
+  if (!ids.length) { $("m-note").textContent = "No hi he trobat cap enllaç de cançó de Spotify. Copia les cançons de la llista (no l'enllaç de la llista) i torna-ho a provar."; return; }
+  $("m-note").textContent = `Llegint ${ids.length} cançons de Spotify…`;
+  const titles = {}; let failed = 0;
+  await Promise.all(ids.map(async id => { try { titles[id] = await trackTitle(id); } catch (e) { failed++; } }));
+  const pairs = [];
+  for (const id of ids) if (titles[id] != null) for (const s of SONGS) { const sc = titleScore(s, titles[id]); if (sc >= 0.6) pairs.push([sc, s.id, id]); }
+  pairs.sort((a, b) => b[0] - a[0]);
+  const usedT = new Set(), done = new Set();
+  for (const [, sid, tid] of pairs) { if (done.has(sid) || usedT.has(tid)) continue; spot[sid] = tid; done.add(sid); usedT.add(tid); }
+  save("bm-spot", spot);
+  const left = ids.filter(id => !usedT.has(id) && titles[id] != null).map(id => titles[id]);
+  let msg = `He vinculat ${done.size} de ${ids.length} cançons.`;
+  if (failed === ids.length) msg = "No he pogut llegir els títols des de Spotify (cal connexió a internet). Pots enganxar l'enllaç de cada cançó al seu requadre, aquí sota.";
+  else if (failed) msg += ` ${failed} no s'han pogut llegir.`;
+  if (left.length) msg += ` Sense parella: ${left.slice(0, 6).join(", ")}${left.length > 6 ? "…" : ""}. Enganxa-les a mà al requadre de la cançó que toqui.`;
+  $("m-note").textContent = msg;
+  renderMusic(); renderPlayer();
+});
+
+function renderMusic() {
+  $("m-count").textContent = SONGS.filter(s => spot[s.id]).length;
+  $("m-list").innerHTML = DECADES.map(d => SONGS.filter(s => s.d === d).sort((a, b) => a.y - b.y).map(s => `
+    <div class="mrow" style="--dc:${dc(s.d)}">
+      <div class="t">${esc(s.t)} <span>· ${esc(s.a)}</span></div>
+      <div class="f ${spot[s.id] ? "" : "miss"}">${spot[s.id] ? "Vinculada" : "Sense vincular"}</div>
+      <label class="hint" for="ln-${s.id}" style="position:absolute;left:-9999px">Enllaç de Spotify de ${esc(s.t)}</label>
+      <input id="ln-${s.id}" data-link="${s.id}" type="text" placeholder="Enganxa aquí l'enllaç de la cançó" value="${spot[s.id] ? "https://open.spotify.com/track/" + spot[s.id] : ""}">
+    </div>`).join("")).join("");
+}
+$("m-list").addEventListener("change", e => {
+  const inp = e.target.closest("[data-link]"); if (!inp) return;
+  const id = +inp.dataset.link, t = trackId(inp.value);
+  if (t) spot[id] = t; else if (!inp.value.trim()) delete spot[id];
+  save("bm-spot", spot); renderMusic(); renderPlayer();
+});
+renderMusic();
+
+// Reproductor oficial de Spotify (iFrame API)
+let ctrl = null, ctrlReady = false, loadedId = null, playingId = null;
+let pos = 0, pendingSeek = null, clipFrom = 0, wantPlay = false;
+const fmt = t => `${Math.floor(t / 60)}:${String(Math.floor(t % 60)).padStart(2, "0")}`;
+const startOf = id => starts[id] != null ? starts[id] : fromSec;
+const urls = spot;   // per al botó «Treu la següent»
+
+window.onSpotifyIframeApiReady = IFrameAPI => {
+  const first = currentId();
+  const uri = first != null && spot[first] ? "spotify:track:" + spot[first] : "spotify:playlist:" + PLAYLIST;
+  IFrameAPI.createController($("spot-embed"), { uri, width: "100%", height: 152 }, c => {
+    ctrl = c;
+    c.addListener("ready", () => { ctrlReady = true; if (wantPlay && playingId != null) { try { c.play(); } catch (e) {} } renderPlayer(); });
+    c.addListener("playback_update", ev => {
+      const d = ev.data || {};
+      pos = (d.position || 0) / 1000;
+      if (pendingSeek != null && !d.isPaused && d.duration > 0) { const s = pendingSeek; pendingSeek = null; if (s > 0 && pos < s - 1) c.seek(s); }
+      if (playingId != null && clipLen > 0 && !d.isPaused && pos >= clipFrom + clipLen) { c.pause(); playingId = null; renderPlayer(); }
+    });
+  });
+};
+setTimeout(() => { if (!ctrl) renderPlayer("No s'ha pogut carregar el reproductor de Spotify. Comprova la connexió a internet i torna a obrir la pàgina."); }, 12000);
+
+function playSong(id) {
+  if (!spot[id]) { renderPlayer(); return; }
+  playingId = id;
+  clipFrom = startOf(id);
+  pendingSeek = clipFrom;
+  if (!ctrl) { wantPlay = true; renderPlayer("El reproductor encara s'està carregant…"); return; }
+  if (loadedId !== id) { ctrl.loadUri("spotify:track:" + spot[id], false, clipFrom); loadedId = id; }
+  else if (clipFrom > 0) ctrl.seek(clipFrom);
+  setTimeout(() => { try { ctrl.play(); } catch (e) {} }, 350);
+  renderPlayer();
+}
+function stopSong() {
+  if (ctrl && playingId != null) { try { ctrl.pause(); } catch (e) {} }
+  playingId = null; pendingSeek = null;
+}
+function currentId() { return drawn.length ? drawn[drawn.length - 1] : null; }
+function renderPlayer(msg) {
+  const id = currentId(), has = id != null && !!spot[id];
+  ["p-play", "p-back", "p-fwd", "p-save"].forEach(b => $(b).disabled = !has || !ctrl);
+  const st = $("p-status");
+  if (msg) { st.textContent = msg; return; }
+  if (!ctrl) st.textContent = "Carregant el reproductor de Spotify…";
+  else if (!SONGS.some(s => spot[s.id])) st.innerHTML = `Primer vincula la llista de Spotify a la pestanya <a href="#musica">Música</a>.`;
+  else if (id == null) st.textContent = "Treu una cançó i sonarà aquí.";
+  else if (!has) st.innerHTML = `Aquesta cançó no està vinculada. Afegeix-la a <a href="#musica">Música</a>.`;
+  else {
+    const s = startOf(id);
+    st.innerHTML = `Comença a <b>${fmt(s)}</b>` + (clipLen ? ` i s'atura a <b>${fmt(s + clipLen)}</b>` : "") + (starts[id] != null ? " · ajustat a mà" : "");
+  }
+}
+$("p-play").addEventListener("click", () => { const id = currentId(); if (id != null) { loadedId = null; playSong(id); } });
+function nudge(d) {
+  const id = currentId(); if (id == null) return;
+  starts[id] = Math.max(0, startOf(id) + d); save("bm-start", starts);
+  if (playingId === id && ctrl) { clipFrom = starts[id]; ctrl.seek(clipFrom); }
+  renderPlayer();
+}
+$("p-back").addEventListener("click", () => nudge(-5));
+$("p-fwd").addEventListener("click", () => nudge(5));
+$("p-save").addEventListener("click", () => {
+  const id = currentId(); if (id == null || loadedId !== id) return;
+  starts[id] = Math.max(0, Math.floor(pos)); clipFrom = starts[id]; save("bm-start", starts); renderPlayer();
+});
+
+/* ---------- Navegació ---------- */
+function route() {
+  const v = (location.hash || "#presentador").slice(1);
+  const view = ["presentador", "cartrons", "musica", "cancons"].includes(v) ? v : "presentador";
+  document.querySelectorAll("section.view").forEach(s => s.classList.toggle("on", s.id === "view-" + view));
+  document.querySelectorAll("nav.tabs a").forEach(a => {
+    if (a.dataset.view === view) a.setAttribute("aria-current", "page"); else a.removeAttribute("aria-current");
+  });
+}
+window.addEventListener("hashchange", route);
+route(); renderNow(); renderCard();
+</script>
+<script src="https://open.spotify.com/embed/iframe-api/v1" async></script>
+</body>
+</html>
