@@ -134,6 +134,8 @@ section.view.on { display: block; }
 .pstatus b { color: var(--text); font-variant-numeric: tabular-nums; }
 .pctl { display: flex; gap: 6px; flex-wrap: wrap; }
 .btn.sm { padding: 6px 10px; font-size: 13px; border-radius: 8px; }
+.relink { margin-top: 10px; color: var(--muted); font-size: 14px; }
+.relink summary { cursor: pointer; color: var(--accent); }
 .musichead { display: flex; flex-wrap: wrap; justify-content: space-between; gap: 16px 32px; align-items: start; }
 .vh { margin: 0 0 6px; font-size: 24px; }
 .lead { margin: 0; color: var(--muted); max-width: 70ch; font-size: 15px; }
@@ -259,8 +261,9 @@ section.view.on { display: block; }
   <section class="view" id="view-musica">
     <div class="musichead">
       <div>
-        <h2 class="vh">Vincula la llista de Spotify</h2>
-        <p class="lead">Només cal fer-ho una vegada. A l'aplicació de Spotify a l'ordinador, obre la llista del bingo, fes clic a la primera cançó, prem <b>Ctrl+A</b> (o <b>Cmd+A</b> al Mac) i després <b>Ctrl+C</b> (o <b>Cmd+C</b>). Enganxa el que has copiat aquí sota i prem «Vincula». La pàgina reconeix cada cançó pel títol i ho recorda en aquest navegador.</p>
+        <h2 class="vh">Llista de Spotify</h2>
+        <p class="lead">Les 50 cançons ja estan vinculades amb la llista «Bingo Musical Clàssic»: quan surt una cançó, el reproductor va directe al seu número de la llista. Per sentir-les senceres, inicia la sessió de Spotify en aquest navegador (open.spotify.com).</p>
+        <details class="relink"><summary>Canviar la vinculació a mà</summary><p class="lead"> A l'aplicació de Spotify a l'ordinador, obre la llista del bingo, fes clic a la primera cançó, prem <b>Ctrl+A</b> (o <b>Cmd+A</b> al Mac) i després <b>Ctrl+C</b> (o <b>Cmd+C</b>). Enganxa el que has copiat aquí sota i prem «Vincula». La pàgina reconeix cada cançó pel títol i ho recorda en aquest navegador.</p></details>
       </div>
       <div class="mstat"><b id="m-count">0</b><span>de <span id="m-total"></span> cançons vinculades</span></div>
     </div>
@@ -337,7 +340,7 @@ function renderNow() {
     $("now-chip").innerHTML = `<span class="chip">${decLabel(s.d)}</span>`;
     $("now-num").textContent = `${n} / ${SONGS.length}`;
     const q = encodeURIComponent(`${s.t} ${s.a}`);
-    $("listen").innerHTML = `<a href="https://www.youtube.com/results?search_query=${q}" target="_blank" rel="noopener">Escolta-la a YouTube</a><a href="https://open.spotify.com/search/${q}" target="_blank" rel="noopener">Obre-la a Spotify</a>`;
+    $("listen").innerHTML = `<a href="https://www.youtube.com/results?search_query=${q}" target="_blank" rel="noopener">Escolta-la a YouTube</a><a href="${(typeof spot !== "undefined" && spot[s.id]) ? "https://open.spotify.com/track/" + spot[s.id] : "https://open.spotify.com/search/" + q}" target="_blank" rel="noopener">Obre-la a Spotify</a>`;
   } else {
     box.style.removeProperty("--dc");
     box.classList.remove("spin");
@@ -444,8 +447,10 @@ $("songs").innerHTML = DECADES.map(d => {
 
 const PLAYLIST = "3i2WpjFwnRU7krEwSTNz5P";
 /* ---------- Spotify ---------- */
+const PRESET = {"0":{"n":9,"id":"44AyOl4qVkzS48vBsbNXaC"},"1":{"n":10,"id":"3SdTKo2uVsxFblQjpScoHy"},"2":{"n":28,"id":"4mn2kNTqiGLwaUR8JdhJ1l"},"3":{"n":41,"id":"5hv3nMY3NKyDL7cSsrSYog"},"4":{"n":11,"id":"1eT2CjXwFXNx6oY5ydvzKU"},"5":{"n":12,"id":"7pKfPomDEeI4TPT6EOYjn9"},"6":{"n":42,"id":"5IU4JO2cpa0wPK8oQWFfCr"},"7":{"n":13,"id":"2JiDi0qAXsPwhPqA2qaKGt"},"8":{"n":29,"id":"0GjEhVFGZW8afUYGChu3Rr"},"9":{"n":2,"id":"5ubvP9oKmxLUVq506fgLhk"},"10":{"n":43,"id":"0saBeiGcu2dECTvAknHPzL"},"11":{"n":14,"id":"3PR0Y4RokWNXUOxg7qQPi1"},"12":{"n":30,"id":"7rIovIsXE6kMn629b7kDig"},"13":{"n":15,"id":"2KH16WveTQWT6KOG9Rg6e2"},"14":{"n":16,"id":"7J1uxwnxfQLu4APicE5Rnj"},"15":{"n":33,"id":"4y1LsJpmMti1PfRQV9AWWe"},"16":{"n":32,"id":"2WfaOiMkCvy7F5fcp2zZ8L"},"17":{"n":17,"id":"37ZJ0p5Jm13JPevGcx4SkF"},"18":{"n":3,"id":"7snQQk1zcKl8gZ92AnueZW"},"19":{"n":18,"id":"2tUBqZG2AbRi7Q0BIrVrEj"},"20":{"n":31,"id":"2v7ywbUzCgcVohHaKUcacV"},"21":{"n":37,"id":"1vzugDTXDgZCF0QQrzB5hX"},"22":{"n":36,"id":"532JxAFc5M6g3fbLJeI3D2"},"23":{"n":4,"id":"4CeeEOM32jQcH3eN9Q2dGj"},"24":{"n":19,"id":"4Y6cDd4EPHcEbiUKdyvNwM"},"25":{"n":1,"id":"1qPbGZqppFwLwcBC1JQ6Vr"},"26":{"n":40,"id":"2LsbizbOeNa4x6qsi2jAMb"},"27":{"n":8,"id":"7qpvLstF3L1UgyEDBV4pjx"},"28":{"n":38,"id":"7v5ULjF1WVgd26HFPT2IAz"},"29":{"n":7,"id":"33LC84JgLvK2KuW43MfaNq"},"30":{"n":6,"id":"3MjUtNVVq3C8Fn0MP3zhXa"},"31":{"n":5,"id":"0Ph6L4l8dYUuXFmb71Ajnd"},"32":{"n":48,"id":"4ggCyLHi9itGzHsUgYhnN4"},"33":{"n":20,"id":"6NG2IIXZfC5Notpz0GIODU"},"34":{"n":50,"id":"5U4pDBaeq2Jl2dKuWWUSsh"},"35":{"n":21,"id":"5IVuqXILoxVWvWEPm82Jxr"},"36":{"n":46,"id":"0eVborSuxUeSg0meWYd9dZ"},"37":{"n":22,"id":"3d0WouFnFmr0K3kjeza3fF"},"38":{"n":45,"id":"24UStI5AYA7g5ufFDh3LH0"},"39":{"n":23,"id":"4kLLWz7srcuLKA7Et40PQR"},"40":{"n":24,"id":"4OSBTYWVwsQhGLF9NHvIbR"},"41":{"n":34,"id":"4B0ScPwmG3oAOg9Ek7ODdm"},"42":{"n":25,"id":"03UrZgTINDqvnUMbbIMhql"},"43":{"n":26,"id":"6habFhsOp2NvshLv26DqMb"},"44":{"n":49,"id":"3kTNMShsRKLbonQuDkXhN7"},"45":{"n":39,"id":"6kp5vm0qtmsG6YTLaWcsoo"},"46":{"n":47,"id":"1RY0VJwzxONgLTuTNMdoSq"},"47":{"n":27,"id":"0VjIjW4GlUZAMYd2vXMi3b"},"48":{"n":35,"id":"7rJmAdR5fswmcKH1TzV9fE"},"49":{"n":44,"id":"4czUFK1w94SOlIRVF0qn1C"}};                 // id cançó -> {n: número a la llista de Spotify, id: pista}
 let spot = load("bm-spot", {});            // id cançó -> id de pista de Spotify
 if (typeof spot !== "object" || !spot) spot = {};
+for (const k in PRESET) spot[k] = PRESET[k].id;
 let starts = load("bm-start", {});         // id cançó -> segon d'inici ajustat
 if (typeof starts !== "object" || !starts) starts = {};
 let fromSec = +load("bm-from", 0) || 0;
@@ -508,7 +513,7 @@ function renderMusic() {
   $("m-list").innerHTML = DECADES.map(d => SONGS.filter(s => s.d === d).sort((a, b) => a.y - b.y).map(s => `
     <div class="mrow" style="--dc:${dc(s.d)}">
       <div class="t">${esc(s.t)} <span>· ${esc(s.a)}</span></div>
-      <div class="f ${spot[s.id] ? "" : "miss"}">${spot[s.id] ? "Vinculada" : "Sense vincular"}</div>
+      <div class="f ${spot[s.id] ? "" : "miss"}">${spot[s.id] ? (PRESET[s.id] ? "Nº " + PRESET[s.id].n + " de la llista de Spotify" : "Vinculada") : "Sense vincular"}</div>
       <label class="hint" for="ln-${s.id}" style="position:absolute;left:-9999px">Enllaç de Spotify de ${esc(s.t)}</label>
       <input id="ln-${s.id}" data-link="${s.id}" type="text" placeholder="Enganxa aquí l'enllaç de la cançó" value="${spot[s.id] ? "https://open.spotify.com/track/" + spot[s.id] : ""}">
     </div>`).join("")).join("");
@@ -571,7 +576,8 @@ function renderPlayer(msg) {
   else if (!has) st.innerHTML = `Aquesta cançó no està vinculada. Afegeix-la a <a href="#musica">Música</a>.`;
   else {
     const s = startOf(id);
-    st.innerHTML = `Comença a <b>${fmt(s)}</b>` + (clipLen ? ` i s'atura a <b>${fmt(s + clipLen)}</b>` : "") + (starts[id] != null ? " · ajustat a mà" : "");
+    const n = PRESET[id] ? `Nº <b>${PRESET[id].n}</b> de la llista · ` : "";
+    st.innerHTML = n + `Comença a <b>${fmt(s)}</b>` + (clipLen ? ` i s'atura a <b>${fmt(s + clipLen)}</b>` : "") + (starts[id] != null ? " · ajustat a mà" : "");
   }
 }
 $("p-play").addEventListener("click", () => { const id = currentId(); if (id != null) { loadedId = null; playSong(id); } });
